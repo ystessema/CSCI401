@@ -25,7 +25,43 @@ typedef struct StartEndIndexes {
 // Runs mergesort on the array segment described in the
 // argument. Spawns two threads to mergesort each half
 // of the array segment, and then merges the results.
+void merge(int arr[], int start, int mid, int end) {
+    int temp[SIZE];
+    int i = start, j = mid + 1, k = 0;
+
+    while (i <= mid && j <= end) {
+        if (arr[i] <= arr[j]) temp[k++] = arr[i++];
+        else temp[k++] = arr[j++];
+    }
+
+    while (i <= mid) temp[k++] = arr[i++];
+    while (j <= end) temp[k++] = arr[j++];
+
+    for (i = start, k = 0; i <= end; i++, k++) arr[i] = temp[k];
+}
+
+
 void* mergeSort(void* args) {
+    StartEndIndexes *sei = (StartEndIndexes*) args;
+    int start = sei->start;
+    int end = sei->end;
+
+    if (start < end) {
+        int mid = (start + end) / 2;
+
+        StartEndIndexes leftSei = {start, mid};
+        StartEndIndexes rightSei = {mid + 1, end};
+
+        pthread_t leftThread, rightThread;
+
+        pthread_create(&leftThread, NULL, mergeSort, &leftSei);
+        pthread_create(&rightThread, NULL, mergeSort, &rightSei);
+
+        pthread_join(leftThread, NULL);
+        pthread_join(rightThread, NULL);
+
+        merge(array, start, mid, end);
+    }
     return NULL;
 }
 
@@ -47,6 +83,11 @@ int main() {
     // 4. Wait for mergesort to finish.
     
     // 5. Print the sorted array.
+    pthread_t mainThread;
+    pthread_create(&mainThread, NULL, mergeSort, &sei);
+    pthread_join(mainThread, NULL);
+
     printf("Sorted array:   ");
     printArray(array);
+    return 0;
 }
